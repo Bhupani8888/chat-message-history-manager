@@ -1,0 +1,133 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// Message structure
+struct Message {
+    int id;
+    string text;
+    string timestamp;
+};
+
+// Utility to get current time as string
+string currentTime() {
+    time_t now = time(0);
+    char buf[80];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    return string(buf);
+}
+
+// Globals
+queue<Message> messageQueue;   // All active messages
+stack<Message> undoStack;      // Undo actions
+stack<Message> redoStack;      // Redo actions
+int nextId = 1;
+
+// Send new message
+void sendMessage() {
+    cin.ignore();
+    Message msg;
+    msg.id = nextId++;
+    cout << "Enter message: ";
+    getline(cin, msg.text);
+    msg.timestamp = currentTime();
+
+    messageQueue.push(msg);
+    undoStack.push(msg);
+    // clear redo stack whenever a new message is sent
+    while (!redoStack.empty()) redoStack.pop();
+
+    cout << "Message sent at " << msg.timestamp << "\n";
+}
+
+// View all messages
+void viewMessages() {
+    if (messageQueue.empty()) {
+        cout << "No messages.\n";
+        return;
+    }
+    cout << "\n--- Chat History ---\n";
+    queue<Message> temp = messageQueue;
+    while (!temp.empty()) {
+        Message m = temp.front(); temp.pop();
+        cout << "[" << m.id << "] " << m.text << " (" << m.timestamp << ")\n";
+    }
+}
+
+// Undo last message
+void undoMessage() {
+    if (undoStack.empty()) {
+        cout << "Nothing to undo.\n";
+        return;
+    }
+    Message last = undoStack.top(); undoStack.pop();
+
+    // Remove from queue
+    queue<Message> temp;
+    while (!messageQueue.empty()) {
+        if (messageQueue.front().id != last.id)
+            temp.push(messageQueue.front());
+        messageQueue.pop();
+    }
+    messageQueue = temp;
+
+    redoStack.push(last);
+    cout << "Undid message: " << last.text << "\n";
+}
+
+// Redo message
+void redoMessage() {
+    if (redoStack.empty()) {
+        cout << "Nothing to redo.\n";
+        return;
+    }
+    Message m = redoStack.top(); redoStack.pop();
+    messageQueue.push(m);
+    undoStack.push(m);
+    cout << "Redid message: " << m.text << "\n";
+}
+
+int main() {
+    int choice;
+    while (true) {
+        cout << "\n1.Send  2.View  3.Undo  4.Redo  0.Exit\nChoice: ";
+        cin >> choice;
+        switch(choice) {
+            case 1: sendMessage(); break;
+            case 2: viewMessages(); break;
+            case 3: undoMessage(); break;
+            case 4: redoMessage(); break;
+            case 0: cout << "Exiting...\n"; return 0;
+            default: cout << "Invalid choice.\n";
+        }
+    }
+}
+
+-----SAMPLE OUTPUT-------
+1.Send  2.View  3.Undo  4.Redo  0.Exit
+Choice: 1
+Enter message: Hello
+Message sent at 2025-09-08 22:15:20
+
+Choice: 1
+Enter message: How are you?
+Message sent at 2025-09-08 22:15:35
+
+Choice: 2
+--- Chat History ---
+[1] Hello (2025-09-08 22:15:20)
+[2] How are you? (2025-09-08 22:15:35)
+
+Choice: 3
+Undid message: How are you?
+
+Choice: 2
+--- Chat History ---
+[1] Hello (2025-09-08 22:15:20)
+
+Choice: 4
+Redid message: How are you?
+
+Choice: 2
+--- Chat History ---
+[1] Hello (2025-09-08 22:15:20)
+[2] How are you? (2025-09-08 22:15:35)
